@@ -58,7 +58,9 @@ def test_customers_crud(client):
     assert r2.json()["company_name"] == "Acme Updated"
     lst = client.get("/api/v1/customers")
     assert lst.status_code == 200
-    assert any(x["id"] == cid for x in lst.json())
+    body = lst.json()
+    rows = body["items"] if isinstance(body, dict) else body
+    assert any(x["id"] == cid for x in rows)
 
 
 def test_unauthenticated_denied(client):

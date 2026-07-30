@@ -10,6 +10,8 @@
     "cycles": "Cicli",
     "lines": "Linee",
     "lineGroups": "Gruppi linea",
+    "operations": "Operazioni",
+    "downtimeReasons": "Cause fermo",
     "settings": "Impostazioni",
     "signage": "Signage",
     "logout": "Esci"
@@ -26,12 +28,17 @@
     "save": "Salva",
     "saved": "Salvato",
     "create": "Crea",
+    "edit": "Modifica",
     "delete": "Elimina",
     "deleted": "Eliminato",
     "refresh": "Aggiorna",
+    "search": "Cerca…",
+    "results": "risultati",
     "empty": "Nessun dato",
     "confirmDelete": "Eliminare questo elemento?",
-    "addLine": "Aggiungi riga"
+    "addLine": "Aggiungi riga",
+    "error": "Qualcosa è andato storto",
+    "loadFailed": "Caricamento non riuscito"
   },
   "changePassword": {
     "title": "Cambio password",
@@ -49,6 +56,7 @@
     "phone": "Telefono",
     "status": "Stato",
     "line": "Linea",
+    "group": "Gruppo linea",
     "operators": "Operatori",
     "reason": "Causa",
     "lines": "Righe"
@@ -65,16 +73,29 @@
     "pause": "Pausa",
     "resume": "Riprendi",
     "complete": "Chiudi",
-    "downtime": "Fermo"
+    "downtime": "Fermo",
+    "resolveDowntime": "Risolvi fermo",
+    "operators": "Operatori",
+    "noCompatibleLines": "Nessuna linea compatibile per questa operazione"
+  },
+  "cycles": {
+    "steps": "Passi del ciclo",
+    "addStep": "Aggiungi passo",
+    "needOps": "Crea prima le operazioni di catalogo"
   },
   "settings": {
     "backup": "Backup",
     "runBackup": "Esegui backup ora",
     "imports": "Import CSV / Excel",
     "reports": "Report",
-    "users": "Utenti"
+    "users": "Utenti",
+    "company": "Azienda",
+    "companyName": "Nome azienda",
+    "superadminOnly": "Le impostazioni richiedono il superadmin"
   },
   "actions": {
-    "generatePO": "Genera ordini di produzione"
+    "generatePO": "Genera ordini di produzione",
+    "confirm": "Conferma",
+    "addComponent": "Aggiungi componente"
   }
 }

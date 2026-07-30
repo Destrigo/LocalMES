@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from auth import any_role_or_api
 from database import (
+    CatalogOperation,
     Downtime,
     DowntimeReason,
     EventType,
@@ -137,8 +138,20 @@ def start(
     order = db.query(ProductionOrder).filter_by(id=payload.order_id).first()
     if not order:
         raise HTTPException(404, "Production order not found")
-    if not db.query(Line).filter_by(id=payload.line_id, active=True).first():
+    line = db.query(Line).filter_by(id=payload.line_id, active=True).first()
+    if not line:
         raise HTTPException(400, "Invalid line")
+    op = db.query(CatalogOperation).filter_by(id=payload.operation_id).first()
+    if not op:
+        raise HTTPException(400, "Invalid operation")
+    compat_ids = [l.id for l in op.compatible_lines]
+    if compat_ids and payload.line_id not in compat_ids:
+        raise HTTPException(400, "Line is not compatible with this operation")
+    if op.line_group_id and line.group_id != op.line_group_id and not compat_ids:
+        raise HTTPException(
+            400,
+            "Line group does not match operation (and no compatible lines configured)",
+        )
     inst = OperationInstance(
         order_id=payload.order_id,
         operation_id=payload.operation_id,

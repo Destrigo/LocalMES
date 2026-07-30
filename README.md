@@ -12,6 +12,15 @@ Local-first Manufacturing Execution System for small manufacturers digitizing pr
 - Python 3.10+
 - Node.js 18+
 
+## Quick start for non-technical users (Windows)
+
+1. Install [Python 3.10+](https://www.python.org/downloads/) and [Node.js 18+](https://nodejs.org/) (once)
+2. Double-click `scripts\start-production.bat`
+3. Open http://localhost:8000
+4. Login `admin` / `admin` and change the password
+
+Optional later in **Settings**: company name, backup folder.
+
 ## Quick start (development)
 
 ```bash

@@ -361,6 +361,8 @@ class ProductPatch(BaseModel):
 @router.get("/products")
 def list_products(
     q: str | None = Query(None),
+    limit: int = Query(200, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     _: User = Depends(any_role_or_api),
 ):
@@ -372,7 +374,15 @@ def list_products(
             | (Product.description.ilike(like))
             | (Product.customer_name.ilike(like))
         )
-    return [model_to_dict(p, PRODUCT_FIELDS) for p in query.order_by(Product.code).all()]
+    query = query.order_by(Product.code)
+    total = query.count()
+    rows = query.offset(offset).limit(limit).all()
+    return {
+        "items": [model_to_dict(p, PRODUCT_FIELDS) for p in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.get("/products/{pid}")

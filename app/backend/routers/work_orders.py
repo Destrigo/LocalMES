@@ -120,6 +120,7 @@ def _line_dict(line: WorkOrderLine) -> dict:
 
 def _wo_dict(wo: WorkOrder) -> dict:
     data = model_to_dict(wo, WO_FIELDS)
+    data["customer_name"] = wo.customer.company_name if wo.customer else None
     data["lines"] = [_line_dict(l) for l in wo.lines]
     return data
 

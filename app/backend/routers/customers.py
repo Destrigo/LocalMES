@@ -52,6 +52,8 @@ class CustomerPatch(BaseModel):
 @router.get("")
 def list_customers(
     q: str | None = Query(None),
+    limit: int = Query(200, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     _: User = Depends(any_role_or_api),
 ):
@@ -63,7 +65,15 @@ def list_customers(
             | (Customer.customer_code.ilike(like))
             | (Customer.vat_number.ilike(like))
         )
-    return [model_to_dict(c, FIELDS) for c in query.order_by(Customer.company_name).all()]
+    query = query.order_by(Customer.company_name)
+    total = query.count()
+    rows = query.offset(offset).limit(limit).all()
+    return {
+        "items": [model_to_dict(c, FIELDS) for c in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.get("/{cid}")

@@ -10,6 +10,8 @@
     "cycles": "Cycles",
     "lines": "Lines",
     "lineGroups": "Line groups",
+    "operations": "Operations",
+    "downtimeReasons": "Downtime reasons",
     "settings": "Settings",
     "signage": "Signage",
     "logout": "Log out"
@@ -26,12 +28,17 @@
     "save": "Save",
     "saved": "Saved",
     "create": "Create",
+    "edit": "Edit",
     "delete": "Delete",
     "deleted": "Deleted",
     "refresh": "Refresh",
+    "search": "Search…",
+    "results": "results",
     "empty": "No data yet",
     "confirmDelete": "Delete this item?",
-    "addLine": "Add line"
+    "addLine": "Add line",
+    "error": "Something went wrong",
+    "loadFailed": "Could not load data"
   },
   "changePassword": {
     "title": "Change password",
@@ -49,6 +56,7 @@
     "phone": "Phone",
     "status": "Status",
     "line": "Line",
+    "group": "Line group",
     "operators": "Operators",
     "reason": "Reason",
     "lines": "Lines"
@@ -65,16 +73,29 @@
     "pause": "Pause",
     "resume": "Resume",
     "complete": "Complete",
-    "downtime": "Downtime"
+    "downtime": "Downtime",
+    "resolveDowntime": "Resolve downtime",
+    "operators": "Operators",
+    "noCompatibleLines": "No compatible line for this operation"
+  },
+  "cycles": {
+    "steps": "Routing steps",
+    "addStep": "Add step",
+    "needOps": "Create catalog operations first"
   },
   "settings": {
     "backup": "Backup",
     "runBackup": "Run backup now",
     "imports": "Import CSV / Excel",
     "reports": "Reports",
-    "users": "Users"
+    "users": "Users",
+    "company": "Company",
+    "companyName": "Company name",
+    "superadminOnly": "Settings require superadmin"
   },
   "actions": {
-    "generatePO": "Generate production orders"
+    "generatePO": "Generate production orders",
+    "confirm": "Confirm",
+    "addComponent": "Add component"
   }
 }
