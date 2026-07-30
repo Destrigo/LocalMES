@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from auth import any_role_or_api, backoffice_or_above, backoffice_or_api, superadmin_only
+from custom_fields import merge_and_validate_custom_fields
 from database import (
     CatalogOperation,
     DowntimeReason,
@@ -36,6 +37,7 @@ PRODUCT_FIELDS = [
     "customer_name",
     "external_id",
     "cycle_id",
+    "custom_fields",
 ]
 
 
@@ -348,6 +350,7 @@ class ProductIn(BaseModel):
     customer_name: str
     external_id: str | None = None
     cycle_id: int | None = None
+    custom_fields: dict | None = None
 
 
 class ProductPatch(BaseModel):
@@ -356,6 +359,7 @@ class ProductPatch(BaseModel):
     customer_name: str | None = None
     external_id: str | None = None
     cycle_id: int | None = None
+    custom_fields: dict | None = None
 
 
 @router.get("/products")
@@ -409,18 +413,26 @@ def get_product_by_code(
 def create_product(
     payload: ProductIn, db: Session = Depends(get_db), _: User = Depends(backoffice_or_api)
 ):
+    data = payload.model_dump()
+    custom = data.pop("custom_fields", None)
     existing = None
     if payload.external_id:
         existing = db.query(Product).filter_by(external_id=payload.external_id).first()
     if not existing:
         existing = db.query(Product).filter_by(code=payload.code).first()
     if existing:
-        for k, v in payload.model_dump().items():
+        for k, v in data.items():
             setattr(existing, k, v)
+        existing.custom_fields = merge_and_validate_custom_fields(
+            db, "product", custom, existing.custom_fields or {}, partial=False
+        )
         db.commit()
         db.refresh(existing)
         return model_to_dict(existing, PRODUCT_FIELDS)
-    p = Product(**payload.model_dump())
+    p = Product(**data)
+    p.custom_fields = merge_and_validate_custom_fields(
+        db, "product", custom, {}, partial=False
+    )
     db.add(p)
     db.commit()
     db.refresh(p)
@@ -437,8 +449,15 @@ def patch_product(
     p = db.query(Product).filter_by(id=pid).first()
     if not p:
         raise HTTPException(404, "Product not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    touched_custom = "custom_fields" in data
+    custom = data.pop("custom_fields", None)
+    for k, v in data.items():
         setattr(p, k, v)
+    if touched_custom:
+        p.custom_fields = merge_and_validate_custom_fields(
+            db, "product", custom, p.custom_fields or {}, partial=False
+        )
     db.commit()
     return model_to_dict(p, PRODUCT_FIELDS)
 

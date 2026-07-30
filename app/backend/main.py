@@ -18,6 +18,7 @@ from routers import (
     customers,
     cycles,
     dashboard,
+    field_definitions,
     imports,
     master_data,
     order_events,
@@ -81,6 +82,7 @@ app.include_router(shop_floor.router, prefix=API_PREFIX)
 app.include_router(shop_floor.downtimes_router, prefix=API_PREFIX)
 app.include_router(dashboard.router, prefix=API_PREFIX)
 app.include_router(settings.router, prefix=API_PREFIX)
+app.include_router(field_definitions.router, prefix=API_PREFIX)
 app.include_router(boms_reports.boms_router, prefix=API_PREFIX)
 app.include_router(boms_reports.reports_router, prefix=API_PREFIX)
 app.include_router(imports.router, prefix=API_PREFIX)

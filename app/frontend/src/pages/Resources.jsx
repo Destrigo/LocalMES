@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import api, { downloadFile } from '../utils/api'
-import { asList, CrudList, Field, inputCls, Modal } from './ui'
+import { asList, CrudList, CustomFieldsEditor, Field, inputCls, Modal, useFieldDefinitions } from './ui'
 
 export function Dashboard() {
   const { t } = useTranslation()
@@ -31,6 +31,7 @@ export function Customers() {
     <CrudList
       title={t('nav.customers')}
       endpoint="/customers"
+      customEntity="customer"
       columns={[{ key: 'id', label: 'ID' }, { key: 'company_name', label: t('fields.company') }, { key: 'customer_code', label: t('fields.code') }, { key: 'email', label: 'Email' }, { key: 'active', label: t('fields.active') }]}
       fields={[{ key: 'company_name', label: t('fields.company'), required: true }, { key: 'customer_code', label: t('fields.code') }, { key: 'email', label: 'Email' }, { key: 'phone', label: t('fields.phone') }, { key: 'external_id', label: 'external_id' }, { key: 'active', label: t('fields.active'), type: 'checkbox' }]}
       createDefaults={{ company_name: '', customer_code: '', email: '', phone: '', external_id: '', active: true }}
@@ -44,6 +45,7 @@ export function Products() {
     <CrudList
       title={t('nav.products')}
       endpoint="/products"
+      customEntity="product"
       columns={[{ key: 'id', label: 'ID' }, { key: 'code', label: t('fields.code') }, { key: 'description', label: t('fields.description') }, { key: 'customer_name', label: t('fields.customer') }, { key: 'cycle_id', label: 'Cycle' }]}
       fields={[{ key: 'code', label: t('fields.code'), required: true }, { key: 'description', label: t('fields.description'), required: true }, { key: 'customer_name', label: t('fields.customer'), required: true }, { key: 'cycle_id', label: 'cycle_id', type: 'number' }, { key: 'external_id', label: 'external_id' }]}
       createDefaults={{ code: '', description: '', customer_name: '', cycle_id: '', external_id: '' }}
@@ -244,10 +246,11 @@ export function Cycles() {
 export function ProductionOrders() {
   const { t } = useTranslation()
   const nav = useNavigate()
+  const defs = useFieldDefinitions('production_order')
   const [rows, setRows] = useState([])
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ order_number: '', customer_name: '', product_description: '', quantity_ordered: 1 })
+  const [form, setForm] = useState({ order_number: '', customer_name: '', product_description: '', quantity_ordered: 1, custom_fields: {} })
   const load = () => api.get('/production-orders').then((r) => setRows(asList(r.data)))
   useEffect(() => { load() }, [])
   const filtered = rows.filter((r) => {
@@ -261,7 +264,7 @@ export function ProductionOrders() {
         <h1 className="text-xl font-semibold">{t('nav.productionOrders')}</h1>
         <div className="flex gap-2">
           <input className={`${inputCls} sm:w-48`} placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />
-          <button type="button" className="px-3 py-2 bg-slate-900 text-white rounded-lg text-sm min-h-11" onClick={() => setOpen(true)}>{t('common.create')}</button>
+          <button type="button" className="px-3 py-2 bg-slate-900 text-white rounded-lg text-sm min-h-11" onClick={() => { setForm({ order_number: '', customer_name: '', product_description: '', quantity_ordered: 1, custom_fields: {} }); setOpen(true) }}>{t('common.create')}</button>
         </div>
       </div>
       <div className="overflow-auto bg-white rounded-xl border">
@@ -289,6 +292,7 @@ export function ProductionOrders() {
               <Field key={k} label={k}><input className={inputCls} required value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} /></Field>
             ))}
             <Field label="quantity_ordered"><input className={inputCls} type="number" min={1} value={form.quantity_ordered} onChange={(e) => setForm({ ...form, quantity_ordered: e.target.value })} /></Field>
+            <CustomFieldsEditor defs={defs} values={form.custom_fields || {}} onChange={(custom_fields) => setForm({ ...form, custom_fields })} />
             <button className="w-full bg-slate-900 text-white rounded-lg py-3 min-h-12">{t('common.save')}</button>
           </form>
         </Modal>
@@ -300,11 +304,12 @@ export function ProductionOrders() {
 export function WorkOrders() {
   const { t } = useTranslation()
   const nav = useNavigate()
+  const defs = useFieldDefinitions('work_order')
   const [rows, setRows] = useState([])
   const [customers, setCustomers] = useState([])
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ customer_id: '', customer_reference: '', comment: '' })
+  const [form, setForm] = useState({ customer_id: '', customer_reference: '', comment: '', custom_fields: {} })
   const load = () => api.get('/work-orders').then((r) => setRows(asList(r.data)))
   useEffect(() => {
     load()
@@ -321,7 +326,7 @@ export function WorkOrders() {
         <h1 className="text-xl font-semibold">{t('nav.workOrders')}</h1>
         <div className="flex gap-2">
           <input className={`${inputCls} sm:w-48`} placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />
-          <button type="button" className="px-3 py-2 bg-slate-900 text-white rounded-lg text-sm min-h-11" onClick={() => setOpen(true)}>{t('common.create')}</button>
+          <button type="button" className="px-3 py-2 bg-slate-900 text-white rounded-lg text-sm min-h-11" onClick={() => { setForm({ customer_id: '', customer_reference: '', comment: '', custom_fields: {} }); setOpen(true) }}>{t('common.create')}</button>
         </div>
       </div>
       <div className="overflow-auto bg-white rounded-xl border">
@@ -356,6 +361,7 @@ export function WorkOrders() {
             </Field>
             <Field label="customer_reference"><input className={inputCls} value={form.customer_reference} onChange={(e) => setForm({ ...form, customer_reference: e.target.value })} /></Field>
             <Field label="comment"><input className={inputCls} value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} /></Field>
+            <CustomFieldsEditor defs={defs} values={form.custom_fields || {}} onChange={(custom_fields) => setForm({ ...form, custom_fields })} />
             <button className="w-full bg-slate-900 text-white rounded-lg py-3 min-h-12">{t('common.save')}</button>
           </form>
         </Modal>
@@ -656,18 +662,34 @@ export function SettingsPage() {
   const [settings, setSettings] = useState([])
   const [users, setUsers] = useState([])
   const [keys, setKeys] = useState([])
+  const [fieldDefs, setFieldDefs] = useState([])
   const [backupDir, setBackupDir] = useState('')
   const [backupEnabled, setBackupEnabled] = useState(false)
   const [companyName, setCompanyName] = useState('')
   const [userForm, setUserForm] = useState({ username: '', password: '', role: 'operator' })
   const [keyForm, setKeyForm] = useState({ name: '', role: 'backoffice' })
   const [newKey, setNewKey] = useState('')
+  const [fdForm, setFdForm] = useState({
+    entity: 'customer',
+    label: '',
+    key: '',
+    field_type: 'string',
+    required: false,
+    options: '',
+    sort_order: 0,
+  })
 
   const load = async () => {
-    const [s, u, k] = await Promise.all([api.get('/settings'), api.get('/users'), api.get('/api-keys')])
+    const [s, u, k, fd] = await Promise.all([
+      api.get('/settings'),
+      api.get('/users'),
+      api.get('/api-keys'),
+      api.get('/field-definitions', { params: { include_inactive: true } }),
+    ])
     setSettings(asList(s.data))
     setUsers(asList(u.data))
     setKeys(asList(k.data))
+    setFieldDefs(asList(fd.data))
     const map = Object.fromEntries(asList(s.data).map((x) => [x.key, x.value]))
     setBackupDir(map.backup_dir || '')
     setBackupEnabled(map.backup_enabled === 'true')
@@ -696,6 +718,114 @@ export function SettingsPage() {
         <button type="button" className="px-3 py-2 bg-slate-900 text-white rounded-lg text-sm min-h-11" onClick={async () => {
           await saveSetting('company_name', companyName); toast.success(t('common.saved')); load()
         }}>{t('common.save')}</button>
+      </section>
+
+      <section className="bg-white border rounded-xl p-4 space-y-3">
+        <h2 className="font-medium">{t('settings.customFields')}</h2>
+        <p className="text-sm text-slate-500">{t('settings.customFieldsHint')}</p>
+        <div className="overflow-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-left">
+              <tr>
+                <th className="px-2 py-2">{t('settings.entity')}</th>
+                <th className="px-2 py-2">key</th>
+                <th className="px-2 py-2">{t('fields.name')}</th>
+                <th className="px-2 py-2">type</th>
+                <th className="px-2 py-2">{t('fields.active')}</th>
+                <th className="px-2 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {fieldDefs.map((d) => (
+                <tr key={d.id} className="border-t">
+                  <td className="px-2 py-2">{d.entity}</td>
+                  <td className="px-2 py-2 font-mono text-xs">{d.key}</td>
+                  <td className="px-2 py-2">{d.label}</td>
+                  <td className="px-2 py-2">{d.field_type}{d.required ? ' *' : ''}</td>
+                  <td className="px-2 py-2">{d.active ? 'yes' : 'off'}</td>
+                  <td className="px-2 py-2 text-right space-x-2 whitespace-nowrap">
+                    {d.field_type === 'select' && (
+                      <button
+                        type="button"
+                        className="text-blue-700 text-xs"
+                        onClick={async () => {
+                          const next = window.prompt(t('settings.addOption'), '')
+                          if (!next?.trim()) return
+                          try {
+                            await api.patch(`/field-definitions/${d.id}`, { options: [...(d.options || []), next.trim()] })
+                            toast.success(t('common.saved')); load()
+                          } catch (err) { toast.error(err.response?.data?.detail || t('common.error')) }
+                        }}
+                      >+ option</button>
+                    )}
+                    <button
+                      type="button"
+                      className="text-sm"
+                      onClick={async () => {
+                        try {
+                          await api.patch(`/field-definitions/${d.id}`, { active: !d.active })
+                          toast.success(t('common.saved')); load()
+                        } catch (err) { toast.error(err.response?.data?.detail || t('common.error')) }
+                      }}
+                    >{d.active ? t('settings.deactivate') : t('settings.reactivate')}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <form
+          className="grid sm:grid-cols-2 gap-2 border-t pt-3"
+          onSubmit={async (e) => {
+            e.preventDefault()
+            const payload = {
+              entity: fdForm.entity,
+              label: fdForm.label,
+              field_type: fdForm.field_type,
+              required: fdForm.required,
+              sort_order: Number(fdForm.sort_order) || 0,
+            }
+            if (fdForm.key.trim()) payload.key = fdForm.key.trim()
+            if (fdForm.field_type === 'select') {
+              payload.options = fdForm.options.split(',').map((x) => x.trim()).filter(Boolean)
+            }
+            try {
+              await api.post('/field-definitions', payload)
+              toast.success(t('common.saved'))
+              setFdForm({ entity: fdForm.entity, label: '', key: '', field_type: 'string', required: false, options: '', sort_order: 0 })
+              load()
+            } catch (err) { toast.error(err.response?.data?.detail || t('common.error')) }
+          }}
+        >
+          <Field label={t('settings.entity')}>
+            <select className={inputCls} value={fdForm.entity} onChange={(e) => setFdForm({ ...fdForm, entity: e.target.value })}>
+              {['customer', 'product', 'work_order', 'work_order_line', 'production_order', 'operation_instance'].map((e) => (
+                <option key={e} value={e}>{e}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label={t('fields.name')}>
+            <input className={inputCls} required value={fdForm.label} onChange={(e) => setFdForm({ ...fdForm, label: e.target.value })} />
+          </Field>
+          <Field label="key (optional)">
+            <input className={inputCls} placeholder="auto from label" value={fdForm.key} onChange={(e) => setFdForm({ ...fdForm, key: e.target.value })} />
+          </Field>
+          <Field label="type">
+            <select className={inputCls} value={fdForm.field_type} onChange={(e) => setFdForm({ ...fdForm, field_type: e.target.value })}>
+              {['string', 'number', 'boolean', 'date', 'select'].map((x) => <option key={x} value={x}>{x}</option>)}
+            </select>
+          </Field>
+          {fdForm.field_type === 'select' && (
+            <Field label={t('settings.selectOptions')}>
+              <input className={inputCls} placeholder="A, B, C" value={fdForm.options} onChange={(e) => setFdForm({ ...fdForm, options: e.target.value })} />
+            </Field>
+          )}
+          <label className="flex items-center gap-2 text-sm self-end mb-3">
+            <input type="checkbox" className="w-5 h-5" checked={fdForm.required} onChange={(e) => setFdForm({ ...fdForm, required: e.target.checked })} />
+            {t('settings.required')}
+          </label>
+          <button className="sm:col-span-2 bg-slate-900 text-white rounded-lg py-3 min-h-12">{t('settings.addField')}</button>
+        </form>
       </section>
 
       <section className="bg-white border rounded-xl p-4 space-y-3">

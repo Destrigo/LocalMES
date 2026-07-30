@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from auth import any_role_or_api
+from custom_fields import merge_and_validate_custom_fields
 from database import (
     CatalogOperation,
     Downtime,
@@ -37,6 +38,7 @@ INSTANCE_FIELDS = [
     "lot_code",
     "started_at",
     "ended_at",
+    "custom_fields",
 ]
 DOWNTIME_FIELDS = ["id", "instance_id", "reason_id", "started_at", "ended_at"]
 
@@ -46,6 +48,7 @@ class StartIn(BaseModel):
     operation_id: int
     line_id: int
     operator_count: int = Field(ge=1)
+    custom_fields: dict | None = None
 
 
 class DowntimeIn(BaseModel):
@@ -59,6 +62,10 @@ class QuantityIn(BaseModel):
 
 class OperatorsIn(BaseModel):
     operator_count: int = Field(ge=1)
+
+
+class InstanceCustomPatch(BaseModel):
+    custom_fields: dict
 
 
 def _inst_dict(i: OperationInstance) -> dict:
@@ -159,6 +166,9 @@ def start(
         operator_count=payload.operator_count,
         status=InstanceStatus.in_progress,
         started_by=getattr(user, "id", None) or 0,
+        custom_fields=merge_and_validate_custom_fields(
+            db, "operation_instance", payload.custom_fields, {}, partial=False
+        ),
     )
     db.add(inst)
     if order.status == ProductionOrderStatus.todo:
@@ -307,6 +317,28 @@ def complete(
                 user_id=getattr(user, "id", None),
             )
         )
+    db.commit()
+    db.refresh(inst)
+    return _inst_dict(inst)
+
+
+@router.patch("/{iid}/custom-fields")
+def patch_instance_custom_fields(
+    iid: int,
+    payload: InstanceCustomPatch,
+    db: Session = Depends(get_db),
+    _: User = Depends(any_role_or_api),
+):
+    inst = db.query(OperationInstance).filter_by(id=iid).first()
+    if not inst:
+        raise HTTPException(404, "Instance not found")
+    inst.custom_fields = merge_and_validate_custom_fields(
+        db,
+        "operation_instance",
+        payload.custom_fields,
+        inst.custom_fields or {},
+        partial=False,
+    )
     db.commit()
     db.refresh(inst)
     return _inst_dict(inst)

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from auth import any_role_or_api, backoffice_or_api
+from custom_fields import merge_and_validate_custom_fields
 from database import (
     EventType,
     OrderEvent,
@@ -31,6 +32,7 @@ ORDER_FIELDS = [
     "created_at",
     "updated_at",
     "comment",
+    "custom_fields",
 ]
 OP_FIELDS = ["id", "order_id", "operation_id", "included"]
 EVENT_FIELDS = ["id", "order_id", "timestamp", "event_type", "text", "user_id", "metadata_json"]
@@ -44,6 +46,7 @@ class OrderIn(BaseModel):
     product_description: str
     quantity_ordered: int
     comment: str | None = None
+    custom_fields: dict | None = None
     operation_ids: list[int] = []
 
 
@@ -55,6 +58,7 @@ class OrderPatch(BaseModel):
     quantity_ordered: int | None = None
     status: ProductionOrderStatus | None = None
     comment: str | None = None
+    custom_fields: dict | None = None
 
 
 class IncludedPatch(BaseModel):
@@ -113,6 +117,9 @@ def create_order(
         comment=payload.comment,
         status=ProductionOrderStatus.todo,
         created_by=getattr(user, "id", None),
+        custom_fields=merge_and_validate_custom_fields(
+            db, "production_order", payload.custom_fields, {}, partial=False
+        ),
     )
     db.add(o)
     db.flush()
@@ -145,8 +152,15 @@ def patch_order(
     o = db.query(ProductionOrder).filter_by(id=oid).first()
     if not o:
         raise HTTPException(404, "Production order not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    touched_custom = "custom_fields" in data
+    custom = data.pop("custom_fields", None)
+    for k, v in data.items():
         setattr(o, k, v)
+    if touched_custom:
+        o.custom_fields = merge_and_validate_custom_fields(
+            db, "production_order", custom, o.custom_fields or {}, partial=False
+        )
     db.add(
         OrderEvent(
             order_id=o.id,

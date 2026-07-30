@@ -68,3 +68,77 @@ def test_unauthenticated_denied(client):
     with TestClient(app) as c:
         r = c.get("/api/v1/customers")
         assert r.status_code == 401
+
+
+def test_custom_fields_add_only_and_validation(client):
+    client.post("/api/v1/auth/login", json={"username": "admin", "password": "admin"})
+
+    # Create a required select field on customer
+    r = client.post(
+        "/api/v1/field-definitions",
+        json={
+            "entity": "customer",
+            "label": "Segment",
+            "key": "segment",
+            "field_type": "select",
+            "required": True,
+            "options": ["SME", "Enterprise"],
+        },
+    )
+    assert r.status_code == 200, r.text
+    fid = r.json()["id"]
+    assert r.json()["key"] == "segment"
+
+    # Cannot hard-delete
+    assert client.delete(f"/api/v1/field-definitions/{fid}").status_code == 405
+
+    # Create without required custom field fails
+    bad = client.post(
+        "/api/v1/customers",
+        json={"company_name": "No Segment Co", "customer_code": "NS1"},
+    )
+    assert bad.status_code == 400
+
+    # Create with valid custom field
+    ok = client.post(
+        "/api/v1/customers",
+        json={
+            "company_name": "Segment Co",
+            "customer_code": "SEG1",
+            "custom_fields": {"segment": "SME"},
+        },
+    )
+    assert ok.status_code == 200
+    assert ok.json()["custom_fields"]["segment"] == "SME"
+    cid = ok.json()["id"]
+
+    # Options are add-only
+    shrink = client.patch(
+        f"/api/v1/field-definitions/{fid}",
+        json={"options": ["SME"]},
+    )
+    assert shrink.status_code == 400
+
+    grow = client.patch(
+        f"/api/v1/field-definitions/{fid}",
+        json={"options": ["SME", "Enterprise", "Public"]},
+    )
+    assert grow.status_code == 200
+    assert "Public" in grow.json()["options"]
+
+    # Deactivate, then cannot write; historical value remains
+    client.patch(f"/api/v1/field-definitions/{fid}", json={"active": False})
+    blocked = client.patch(
+        f"/api/v1/customers/{cid}",
+        json={"custom_fields": {"segment": "Public"}},
+    )
+    assert blocked.status_code == 400
+    still = client.get(f"/api/v1/customers/{cid}")
+    assert still.json()["custom_fields"]["segment"] == "SME"
+
+    # Unknown key rejected
+    unk = client.patch(
+        f"/api/v1/customers/{cid}",
+        json={"company_name": "Segment Co 2"},
+    )
+    assert unk.status_code == 200

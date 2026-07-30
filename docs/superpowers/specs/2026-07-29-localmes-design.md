@@ -119,6 +119,15 @@ LocalMES is **API-complete**: anything the UI can read or write, and every field
 7. **Pagination / filtering:** list endpoints support `limit`, `offset` (or cursor), and filters on key foreign keys and statuses.
 8. **Idempotency where useful:** create-by-`external_id` upsert or conflict behavior documented for import integrations.
 
+### Customization (no code, no IT)
+
+SMEs configure the MES from **Settings → Custom fields**, not by forking the app:
+
+- **Field definitions** (`/api/v1/field-definitions`): entity, key, label, type (`string|number|boolean|date|select`), required, options, active, sort_order.
+- **Values** live in `custom_fields` JSON on: customer, product, work_order, work_order_line, production_order, operation_instance.
+- **Add-only schema:** never hard-delete a definition; deactivate instead. `key` / `entity` / `field_type` are immutable after create. Select `options` may only grow.
+- Light rules today: required + type coercion + select membership. Enough for plant-specific attributes without a rules engine.
+
 ### Auth for integrations
 
 | Client | Mechanism |
@@ -149,6 +158,7 @@ API keys are scoped by role (same permission matrix as users). Key **values** ar
 | Operation instances | `/api/v1/operation-instances` | Live shop-floor state |
 | Downtime events | `/api/v1/downtimes` | |
 | Settings | `/api/v1/settings` | Key/value; secrets redacted |
+| Field definitions | `/api/v1/field-definitions` | Custom fields schema (add-only; deactivate, never delete) |
 | Backup logs | `/api/v1/backup-logs` | Read + trigger backup action |
 | Dashboard / signage | `/api/v1/dashboard/...` | Read-optimized aggregates |
 | Reports | `/api/v1/reports/...` | Export endpoints |

@@ -8,6 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from auth import any_role_or_api, backoffice_or_api
+from custom_fields import merge_and_validate_custom_fields
 from database import (
     Cycle,
     EventType,
@@ -38,6 +39,7 @@ WO_FIELDS = [
     "source_file",
     "external_id",
     "external_doc_number",
+    "custom_fields",
 ]
 LINE_FIELDS = [
     "id",
@@ -52,6 +54,7 @@ LINE_FIELDS = [
     "line_ref",
     "external_id",
     "qty_fulfilled",
+    "custom_fields",
 ]
 COMP_FIELDS = ["id", "line_id", "code", "description", "quantity"]
 
@@ -73,6 +76,7 @@ class LineIn(BaseModel):
     line_ref: str | None = None
     external_id: str | None = None
     qty_fulfilled: int | None = None
+    custom_fields: dict | None = None
     components: list[ComponentIn] = Field(default_factory=list)
 
 
@@ -85,6 +89,7 @@ class WorkOrderIn(BaseModel):
     source_file: str | None = None
     external_id: str | None = None
     external_doc_number: str | None = None
+    custom_fields: dict | None = None
     lines: list[LineIn] = Field(default_factory=list)
 
 
@@ -97,6 +102,7 @@ class WorkOrderPatch(BaseModel):
     source_file: str | None = None
     external_id: str | None = None
     external_doc_number: str | None = None
+    custom_fields: dict | None = None
 
 
 class LinePatch(BaseModel):
@@ -110,6 +116,7 @@ class LinePatch(BaseModel):
     line_ref: str | None = None
     external_id: str | None = None
     qty_fulfilled: int | None = None
+    custom_fields: dict | None = None
 
 
 def _line_dict(line: WorkOrderLine) -> dict:
@@ -174,6 +181,9 @@ def create_work_order(
         source_file=payload.source_file,
         external_id=payload.external_id,
         external_doc_number=payload.external_doc_number,
+        custom_fields=merge_and_validate_custom_fields(
+            db, "work_order", payload.custom_fields, {}, partial=False
+        ),
     )
     db.add(wo)
     db.flush()
@@ -190,6 +200,9 @@ def create_work_order(
             line_ref=line.line_ref,
             external_id=line.external_id,
             qty_fulfilled=line.qty_fulfilled,
+            custom_fields=merge_and_validate_custom_fields(
+                db, "work_order_line", line.custom_fields, {}, partial=False
+            ),
         )
         db.add(wl)
         db.flush()
@@ -217,8 +230,15 @@ def patch_work_order(
     wo = db.query(WorkOrder).filter_by(id=wid).first()
     if not wo:
         raise HTTPException(404, "Work order not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    touched_custom = "custom_fields" in data
+    custom = data.pop("custom_fields", None)
+    for k, v in data.items():
         setattr(wo, k, v)
+    if touched_custom:
+        wo.custom_fields = merge_and_validate_custom_fields(
+            db, "work_order", custom, wo.custom_fields or {}, partial=False
+        )
     db.commit()
     db.refresh(wo)
     return _wo_dict(wo)
@@ -265,6 +285,9 @@ def add_line(
         line_ref=payload.line_ref,
         external_id=payload.external_id,
         qty_fulfilled=payload.qty_fulfilled,
+        custom_fields=merge_and_validate_custom_fields(
+            db, "work_order_line", payload.custom_fields, {}, partial=False
+        ),
     )
     db.add(wl)
     db.flush()
@@ -297,8 +320,15 @@ def patch_line(
     )
     if not wl:
         raise HTTPException(404, "Line not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    touched_custom = "custom_fields" in data
+    custom = data.pop("custom_fields", None)
+    for k, v in data.items():
         setattr(wl, k, v)
+    if touched_custom:
+        wl.custom_fields = merge_and_validate_custom_fields(
+            db, "work_order_line", custom, wl.custom_fields or {}, partial=False
+        )
     db.commit()
     wo = db.query(WorkOrder).filter_by(id=wid).first()
     return _wo_dict(wo)

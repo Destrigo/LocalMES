@@ -20,6 +20,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    UniqueConstraint,
     create_engine,
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
@@ -139,6 +140,7 @@ class Product(Base):
     customer_name = Column(String, nullable=False)
     external_id = Column(String, nullable=True, index=True)
     cycle_id = Column(Integer, ForeignKey("cycles.id"), nullable=True)
+    custom_fields = Column(JSON, nullable=False, default=dict)
     cycle = relationship("Cycle", back_populates="products")
     production_orders = relationship("ProductionOrder", back_populates="product")
 
@@ -183,6 +185,7 @@ class ProductionOrder(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     comment = Column(String, nullable=True)
+    custom_fields = Column(JSON, nullable=False, default=dict)
     product = relationship("Product", back_populates="production_orders")
     creator = relationship("User")
     operations = relationship("ProductionOrderOperation", back_populates="order")
@@ -217,6 +220,7 @@ class OperationInstance(Base):
     lot_code = Column(String, nullable=True)
     started_at = Column(DateTime, default=datetime.utcnow)
     ended_at = Column(DateTime, nullable=True)
+    custom_fields = Column(JSON, nullable=False, default=dict)
     order = relationship("ProductionOrder", back_populates="instances")
     operation = relationship("CatalogOperation", back_populates="instances")
     line = relationship("Line", back_populates="instances")
@@ -267,6 +271,7 @@ class Customer(Base):
     active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     external_id = Column(String, nullable=True, index=True)
+    custom_fields = Column(JSON, nullable=False, default=dict)
     work_orders = relationship("WorkOrder", back_populates="customer")
 
 
@@ -286,6 +291,7 @@ class WorkOrder(Base):
     source_file = Column(String, nullable=True)
     external_id = Column(String, nullable=True, index=True)
     external_doc_number = Column(String, nullable=True)
+    custom_fields = Column(JSON, nullable=False, default=dict)
     customer = relationship("Customer", back_populates="work_orders")
     lines = relationship(
         "WorkOrderLine", back_populates="work_order", cascade="all, delete-orphan"
@@ -306,6 +312,7 @@ class WorkOrderLine(Base):
     line_ref = Column(String, nullable=True)
     external_id = Column(String, nullable=True, index=True)
     qty_fulfilled = Column(Integer, nullable=True)
+    custom_fields = Column(JSON, nullable=False, default=dict)
     work_order = relationship("WorkOrder", back_populates="lines")
     product = relationship("Product")
     components = relationship(
@@ -355,6 +362,31 @@ class ApiKey(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
 
+class FieldDefinition(Base):
+    """
+    Custom field schema — add-only.
+
+    Definitions are never hard-deleted (deactivate with active=False).
+    key / entity / field_type are immutable after creation.
+    """
+
+    __tablename__ = "field_definitions"
+    __table_args__ = (UniqueConstraint("entity", "key", name="uq_field_def_entity_key"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    entity = Column(String(64), nullable=False, index=True)
+    # customer | product | work_order | work_order_line | production_order | operation_instance
+    key = Column(String(64), nullable=False)
+    label = Column(String(128), nullable=False)
+    field_type = Column(String(32), nullable=False, default="string")
+    # string | number | boolean | date | select
+    required = Column(Boolean, default=False, nullable=False)
+    options = Column(JSON, nullable=True)  # for select: ["A", "B"] — only grow over time
+    active = Column(Boolean, default=True, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -364,10 +396,32 @@ def get_db():
 
 
 def init_db():
-    """Create tables and seed default admin user."""
+    """Create tables, apply lightweight column adds, seed default admin user."""
     import bcrypt
+    from sqlalchemy import inspect, text as sa_text
 
     Base.metadata.create_all(bind=engine)
+
+    # Additive migrations for existing SQLite files
+    insp = inspect(engine)
+    json_defaults = [
+        ("products", "custom_fields"),
+        ("customers", "custom_fields"),
+        ("work_orders", "custom_fields"),
+        ("work_order_lines", "custom_fields"),
+        ("production_orders", "custom_fields"),
+        ("operation_instances", "custom_fields"),
+    ]
+    for table_name, col_name in json_defaults:
+        if table_name not in insp.get_table_names():
+            continue
+        existing = {c["name"] for c in insp.get_columns(table_name)}
+        if col_name not in existing:
+            with engine.begin() as conn:
+                conn.execute(
+                    sa_text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} JSON DEFAULT '{{}}'")
+                )
+
     db = SessionLocal()
     try:
         if not db.query(User).filter_by(username="admin").first():

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from auth import any_role_or_api, backoffice_or_api
+from custom_fields import merge_and_validate_custom_fields
 from database import Customer, User, get_db
 from serializers import model_to_dict
 
@@ -22,6 +23,7 @@ FIELDS = [
     "active",
     "created_at",
     "external_id",
+    "custom_fields",
 ]
 
 
@@ -35,6 +37,7 @@ class CustomerIn(BaseModel):
     notes: str | None = None
     active: bool = True
     external_id: str | None = None
+    custom_fields: dict | None = None
 
 
 class CustomerPatch(BaseModel):
@@ -47,6 +50,7 @@ class CustomerPatch(BaseModel):
     notes: str | None = None
     active: bool | None = None
     external_id: str | None = None
+    custom_fields: dict | None = None
 
 
 @router.get("")
@@ -92,18 +96,26 @@ def create_customer(
     db: Session = Depends(get_db),
     _: User = Depends(backoffice_or_api),
 ):
+    data = payload.model_dump()
+    custom = data.pop("custom_fields", None)
     existing = None
     if payload.external_id:
         existing = db.query(Customer).filter_by(external_id=payload.external_id).first()
     if not existing and payload.customer_code:
         existing = db.query(Customer).filter_by(customer_code=payload.customer_code).first()
     if existing:
-        for k, v in payload.model_dump().items():
+        for k, v in data.items():
             setattr(existing, k, v)
+        existing.custom_fields = merge_and_validate_custom_fields(
+            db, "customer", custom, existing.custom_fields or {}, partial=False
+        )
         db.commit()
         db.refresh(existing)
         return model_to_dict(existing, FIELDS)
-    c = Customer(**payload.model_dump())
+    c = Customer(**data)
+    c.custom_fields = merge_and_validate_custom_fields(
+        db, "customer", custom, {}, partial=False
+    )
     db.add(c)
     db.commit()
     db.refresh(c)
@@ -120,8 +132,15 @@ def patch_customer(
     c = db.query(Customer).filter_by(id=cid).first()
     if not c:
         raise HTTPException(404, "Customer not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    touched_custom = "custom_fields" in data
+    custom = data.pop("custom_fields", None)
+    for k, v in data.items():
         setattr(c, k, v)
+    if touched_custom:
+        c.custom_fields = merge_and_validate_custom_fields(
+            db, "customer", custom, c.custom_fields or {}, partial=False
+        )
     db.commit()
     return model_to_dict(c, FIELDS)
 

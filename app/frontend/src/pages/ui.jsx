@@ -34,6 +34,77 @@ export function Field({ label, children }) {
 
 export const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2.5 text-base sm:text-sm min-h-11'
 
+/** Load active field definitions for an entity. */
+export function useFieldDefinitions(entity) {
+  const [defs, setDefs] = useState([])
+  useEffect(() => {
+    if (!entity) {
+      setDefs([])
+      return
+    }
+    api.get('/field-definitions', { params: { entity } })
+      .then((r) => setDefs(asList(r.data)))
+      .catch(() => setDefs([]))
+  }, [entity])
+  return defs
+}
+
+/** Render + edit custom_fields object driven by definitions. */
+export function CustomFieldsEditor({ defs, values, onChange }) {
+  if (!defs?.length) return null
+  const setKey = (key, val) => onChange({ ...(values || {}), [key]: val })
+  return (
+    <div className="border-t pt-3 mt-2 space-y-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Custom fields</p>
+      {defs.map((d) => {
+        const v = values?.[d.key]
+        const label = `${d.label}${d.required ? ' *' : ''}`
+        if (d.field_type === 'boolean') {
+          return (
+            <Field key={d.key} label={label}>
+              <input
+                type="checkbox"
+                className="w-5 h-5"
+                checked={!!v}
+                onChange={(e) => setKey(d.key, e.target.checked)}
+              />
+            </Field>
+          )
+        }
+        if (d.field_type === 'select') {
+          return (
+            <Field key={d.key} label={label}>
+              <select
+                className={inputCls}
+                required={!!d.required}
+                value={v ?? ''}
+                onChange={(e) => setKey(d.key, e.target.value)}
+              >
+                <option value="">…</option>
+                {(d.options || []).map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </Field>
+          )
+        }
+        const type = d.field_type === 'number' ? 'number' : d.field_type === 'date' ? 'date' : 'text'
+        return (
+          <Field key={d.key} label={label}>
+            <input
+              className={inputCls}
+              type={type}
+              required={!!d.required}
+              value={v ?? ''}
+              onChange={(e) => setKey(d.key, type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+            />
+          </Field>
+        )
+      })}
+    </div>
+  )
+}
+
 function prepareBody(form, fields, endpoint) {
   const body = { ...form }
   for (const f of fields) {
@@ -46,18 +117,26 @@ function prepareBody(form, fields, endpoint) {
   }
   if (body.compatible_line_ids == null) body.compatible_line_ids = []
   if (endpoint === '/cycles' && body.steps == null) body.steps = []
+  if (body.custom_fields && typeof body.custom_fields === 'object') {
+    const cleaned = { ...body.custom_fields }
+    for (const [k, v] of Object.entries(cleaned)) {
+      if (v === '') delete cleaned[k]
+    }
+    body.custom_fields = cleaned
+  }
   return body
 }
 
 /** Generic list with search, create, edit, delete — tablet-friendly. */
-export function CrudList({ title, endpoint, columns, fields, createDefaults = {}, searchParam = 'q' }) {
+export function CrudList({ title, endpoint, columns, fields, createDefaults = {}, searchParam = 'q', customEntity }) {
   const { t } = useTranslation()
+  const defs = useFieldDefinitions(customEntity)
   const [rows, setRows] = useState([])
   const [total, setTotal] = useState(0)
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(createDefaults)
+  const [form, setForm] = useState({ ...createDefaults, custom_fields: {} })
   const [loading, setLoading] = useState(true)
 
   const load = () => {
@@ -78,13 +157,13 @@ export function CrudList({ title, endpoint, columns, fields, createDefaults = {}
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ ...createDefaults })
+    setForm({ ...createDefaults, custom_fields: {} })
     setOpen(true)
   }
 
   const openEdit = (row) => {
     setEditing(row)
-    const next = { ...createDefaults }
+    const next = { ...createDefaults, custom_fields: { ...(row.custom_fields || {}) } }
     for (const f of fields) next[f.key] = row[f.key] ?? createDefaults[f.key] ?? ''
     if (row.compatible_line_ids) next.compatible_line_ids = row.compatible_line_ids
     setForm(next)
@@ -95,6 +174,7 @@ export function CrudList({ title, endpoint, columns, fields, createDefaults = {}
     e.preventDefault()
     try {
       const body = prepareBody(form, fields, endpoint)
+      if (!customEntity) delete body.custom_fields
       if (editing) await api.patch(`${endpoint}/${editing.id}`, body)
       else await api.post(endpoint, body)
       toast.success(t('common.saved'))
@@ -173,6 +253,13 @@ export function CrudList({ title, endpoint, columns, fields, createDefaults = {}
                 )}
               </Field>
             ))}
+            {customEntity && (
+              <CustomFieldsEditor
+                defs={defs}
+                values={form.custom_fields || {}}
+                onChange={(custom_fields) => setForm({ ...form, custom_fields })}
+              />
+            )}
             <button type="submit" className="w-full bg-slate-900 text-white rounded-lg py-3 font-medium min-h-12">{t('common.save')}</button>
           </form>
         </Modal>

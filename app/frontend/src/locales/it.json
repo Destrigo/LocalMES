@@ -91,7 +91,16 @@
     "users": "Utenti",
     "company": "Azienda",
     "companyName": "Nome azienda",
-    "superadminOnly": "Le impostazioni richiedono il superadmin"
+    "superadminOnly": "Le impostazioni richiedono il superadmin",
+    "customFields": "Campi personalizzati",
+    "customFieldsHint": "Definisci i campi una volta nelle Impostazioni. Puoi aggiungerne altri o disattivarli — non si cancellano (i dati storici restano validi).",
+    "entity": "Entità",
+    "addField": "Aggiungi campo",
+    "required": "Obbligatorio",
+    "selectOptions": "Opzioni select (separate da virgola)",
+    "deactivate": "Disattiva",
+    "reactivate": "Riattiva",
+    "addOption": "Nuova opzione da aggiungere (quelle esistenti restano)"
   },
   "actions": {
     "generatePO": "Genera ordini di produzione",

@@ -91,7 +91,16 @@
     "users": "Users",
     "company": "Company",
     "companyName": "Company name",
-    "superadminOnly": "Settings require superadmin"
+    "superadminOnly": "Settings require superadmin",
+    "customFields": "Custom fields",
+    "customFieldsHint": "Add fields once in Settings. Later you can add more or deactivate — never delete keys (keeps old data safe).",
+    "entity": "Entity",
+    "addField": "Add field",
+    "required": "Required",
+    "selectOptions": "Select options (comma-separated)",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "addOption": "New option to add (existing options stay forever)"
   },
   "actions": {
     "generatePO": "Generate production orders",
