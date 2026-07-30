@@ -1,0 +1,2 @@
+order_number,product_code,quantity_ordered,customer_name,comment
+PO-DEMO-1,DEMO-001,10,Demo Customer,Sample import

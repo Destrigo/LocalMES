@@ -399,8 +399,17 @@ def get_product_by_code(
 def create_product(
     payload: ProductIn, db: Session = Depends(get_db), _: User = Depends(backoffice_or_api)
 ):
-    if db.query(Product).filter_by(code=payload.code).first():
-        raise HTTPException(400, "Product code already exists")
+    existing = None
+    if payload.external_id:
+        existing = db.query(Product).filter_by(external_id=payload.external_id).first()
+    if not existing:
+        existing = db.query(Product).filter_by(code=payload.code).first()
+    if existing:
+        for k, v in payload.model_dump().items():
+            setattr(existing, k, v)
+        db.commit()
+        db.refresh(existing)
+        return model_to_dict(existing, PRODUCT_FIELDS)
     p = Product(**payload.model_dump())
     db.add(p)
     db.commit()

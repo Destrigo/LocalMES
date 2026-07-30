@@ -8,7 +8,9 @@ import {
   Dashboard,
   Customers,
   WorkOrders,
+  WorkOrderDetail,
   ProductionOrders,
+  ProductionOrderDetail,
   Products,
   Cycles,
   Lines,
@@ -40,7 +42,9 @@ function AppRoutes() {
       <Route path="/shop-floor" element={<Protected><Layout><ShopFloor /></Layout></Protected>} />
       <Route path="/customers" element={<Protected backoffice><Layout><Customers /></Layout></Protected>} />
       <Route path="/work-orders" element={<Protected backoffice><Layout><WorkOrders /></Layout></Protected>} />
+      <Route path="/work-orders/:id" element={<Protected backoffice><Layout><WorkOrderDetail /></Layout></Protected>} />
       <Route path="/production-orders" element={<Protected backoffice><Layout><ProductionOrders /></Layout></Protected>} />
+      <Route path="/production-orders/:id" element={<Protected backoffice><Layout><ProductionOrderDetail /></Layout></Protected>} />
       <Route path="/products" element={<Protected backoffice><Layout><Products /></Layout></Protected>} />
       <Route path="/cycles" element={<Protected backoffice><Layout><Cycles /></Layout></Protected>} />
       <Route path="/lines" element={<Protected backoffice><Layout><Lines /></Layout></Protected>} />

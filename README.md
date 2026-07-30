@@ -23,6 +23,9 @@ python -m venv .venv
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 
+# Optional demo data
+python scripts/seed_demo.py
+
 # Frontend (other terminal)
 cd app/frontend
 npm install
@@ -32,6 +35,8 @@ npm run dev
 Open http://localhost:3000 — default login `admin` / `admin` (password change required).
 
 API docs (dev): http://localhost:8000/docs
+
+User guides: [English](docs/user/en/README.md) · [Italiano](docs/user/it/README.md)
 
 ## Production (single process)
 

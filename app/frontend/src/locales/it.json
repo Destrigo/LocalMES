@@ -9,6 +9,7 @@
     "products": "Prodotti",
     "cycles": "Cicli",
     "lines": "Linee",
+    "lineGroups": "Gruppi linea",
     "settings": "Impostazioni",
     "signage": "Signage",
     "logout": "Esci"
@@ -23,15 +24,57 @@
   "common": {
     "loading": "Caricamento…",
     "save": "Salva",
+    "saved": "Salvato",
     "create": "Crea",
     "delete": "Elimina",
+    "deleted": "Eliminato",
     "refresh": "Aggiorna",
-    "empty": "Nessun dato"
+    "empty": "Nessun dato",
+    "confirmDelete": "Eliminare questo elemento?",
+    "addLine": "Aggiungi riga"
   },
   "changePassword": {
     "title": "Cambio password",
     "current": "Password attuale",
     "next": "Nuova password",
     "submit": "Aggiorna password"
+  },
+  "fields": {
+    "company": "Ragione sociale",
+    "code": "Codice",
+    "description": "Descrizione",
+    "customer": "Cliente",
+    "active": "Attivo",
+    "name": "Nome",
+    "phone": "Telefono",
+    "status": "Stato",
+    "line": "Linea",
+    "operators": "Operatori",
+    "reason": "Causa",
+    "lines": "Righe"
+  },
+  "dashboard": {
+    "live": "Istanze live",
+    "openOrders": "Ordini aperti",
+    "lines": "Linee attive"
+  },
+  "shopFloor": {
+    "live": "Operazioni in corso",
+    "todo": "Ordini da lavorare",
+    "start": "Avvia",
+    "pause": "Pausa",
+    "resume": "Riprendi",
+    "complete": "Chiudi",
+    "downtime": "Fermo"
+  },
+  "settings": {
+    "backup": "Backup",
+    "runBackup": "Esegui backup ora",
+    "imports": "Import CSV / Excel",
+    "reports": "Report",
+    "users": "Utenti"
+  },
+  "actions": {
+    "generatePO": "Genera ordini di produzione"
   }
 }

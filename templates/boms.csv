@@ -1,0 +1,3 @@
+parent_code,parent_description,component_code,component_description,quantity,cost
+DEMO-001,Demo widget,COMP-A,Housing,1,2.5
+DEMO-001,Demo widget,COMP-B,Screw,4,0.1

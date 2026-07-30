@@ -9,6 +9,7 @@
     "products": "Products",
     "cycles": "Cycles",
     "lines": "Lines",
+    "lineGroups": "Line groups",
     "settings": "Settings",
     "signage": "Signage",
     "logout": "Log out"
@@ -23,15 +24,57 @@
   "common": {
     "loading": "Loading…",
     "save": "Save",
+    "saved": "Saved",
     "create": "Create",
     "delete": "Delete",
+    "deleted": "Deleted",
     "refresh": "Refresh",
-    "empty": "No data yet"
+    "empty": "No data yet",
+    "confirmDelete": "Delete this item?",
+    "addLine": "Add line"
   },
   "changePassword": {
     "title": "Change password",
     "current": "Current password",
     "next": "New password",
     "submit": "Update password"
+  },
+  "fields": {
+    "company": "Company",
+    "code": "Code",
+    "description": "Description",
+    "customer": "Customer",
+    "active": "Active",
+    "name": "Name",
+    "phone": "Phone",
+    "status": "Status",
+    "line": "Line",
+    "operators": "Operators",
+    "reason": "Reason",
+    "lines": "Lines"
+  },
+  "dashboard": {
+    "live": "Live instances",
+    "openOrders": "Open production orders",
+    "lines": "Active lines"
+  },
+  "shopFloor": {
+    "live": "Live operations",
+    "todo": "Orders to process",
+    "start": "Start",
+    "pause": "Pause",
+    "resume": "Resume",
+    "complete": "Complete",
+    "downtime": "Downtime"
+  },
+  "settings": {
+    "backup": "Backup",
+    "runBackup": "Run backup now",
+    "imports": "Import CSV / Excel",
+    "reports": "Reports",
+    "users": "Users"
+  },
+  "actions": {
+    "generatePO": "Generate production orders"
   }
 }

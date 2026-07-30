@@ -78,8 +78,21 @@ def get_customer(
 
 @router.post("")
 def create_customer(
-    payload: CustomerIn, db: Session = Depends(get_db), _: User = Depends(backoffice_or_api)
+    payload: CustomerIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(backoffice_or_api),
 ):
+    existing = None
+    if payload.external_id:
+        existing = db.query(Customer).filter_by(external_id=payload.external_id).first()
+    if not existing and payload.customer_code:
+        existing = db.query(Customer).filter_by(customer_code=payload.customer_code).first()
+    if existing:
+        for k, v in payload.model_dump().items():
+            setattr(existing, k, v)
+        db.commit()
+        db.refresh(existing)
+        return model_to_dict(existing, FIELDS)
     c = Customer(**payload.model_dump())
     db.add(c)
     db.commit()

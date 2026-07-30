@@ -322,6 +322,82 @@ def delete_line(
     return {"ok": True}
 
 
+@router.post("/{wid}/lines/{line_id}/components")
+def add_component(
+    wid: int,
+    line_id: int,
+    payload: ComponentIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(backoffice_or_api),
+):
+    wl = db.query(WorkOrderLine).filter_by(id=line_id, work_order_id=wid).first()
+    if not wl:
+        raise HTTPException(404, "Line not found")
+    c = WorkOrderLineComponent(
+        line_id=wl.id,
+        code=payload.code,
+        description=payload.description,
+        quantity=payload.quantity,
+    )
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return model_to_dict(c, COMP_FIELDS)
+
+
+@router.patch("/{wid}/lines/{line_id}/components/{cid}")
+def patch_component(
+    wid: int,
+    line_id: int,
+    cid: int,
+    payload: ComponentIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(backoffice_or_api),
+):
+    c = (
+        db.query(WorkOrderLineComponent)
+        .join(WorkOrderLine)
+        .filter(
+            WorkOrderLineComponent.id == cid,
+            WorkOrderLine.id == line_id,
+            WorkOrderLine.work_order_id == wid,
+        )
+        .first()
+    )
+    if not c:
+        raise HTTPException(404, "Component not found")
+    c.code = payload.code
+    c.description = payload.description
+    c.quantity = payload.quantity
+    db.commit()
+    return model_to_dict(c, COMP_FIELDS)
+
+
+@router.delete("/{wid}/lines/{line_id}/components/{cid}")
+def delete_component(
+    wid: int,
+    line_id: int,
+    cid: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(backoffice_or_api),
+):
+    c = (
+        db.query(WorkOrderLineComponent)
+        .join(WorkOrderLine)
+        .filter(
+            WorkOrderLineComponent.id == cid,
+            WorkOrderLine.id == line_id,
+            WorkOrderLine.work_order_id == wid,
+        )
+        .first()
+    )
+    if not c:
+        raise HTTPException(404, "Component not found")
+    db.delete(c)
+    db.commit()
+    return {"ok": True}
+
+
 @router.delete("/{wid}")
 def delete_work_order(
     wid: int, db: Session = Depends(get_db), _: User = Depends(backoffice_or_api)

@@ -1,4 +1,6 @@
-"""BOM and report endpoints."""
+"""BOM CRUD and report export endpoints."""
+
+from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -6,7 +8,8 @@ from sqlalchemy.orm import Session
 
 from auth import any_role_or_api, backoffice_or_api, backoffice_or_above
 from database import Bom, Downtime, OperationInstance, ProductionOrder, User, get_db
-from serializers import model_to_dict
+from io_utils import pdf_table_response, xlsx_response
+from serializers import model_to_dict, serialize_value
 
 boms_router = APIRouter(prefix="/boms", tags=["boms"])
 reports_router = APIRouter(prefix="/reports", tags=["reports"])
@@ -43,13 +46,22 @@ class BomPatch(BaseModel):
 @boms_router.get("")
 def list_boms(
     parent_code: str | None = Query(None),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     _: User = Depends(any_role_or_api),
 ):
     q = db.query(Bom)
     if parent_code:
         q = q.filter_by(parent_code=parent_code)
-    return [model_to_dict(b, BOM_FIELDS) for b in q.all()]
+    total = q.count()
+    rows = q.offset(offset).limit(limit).all()
+    return {
+        "items": [model_to_dict(b, BOM_FIELDS) for b in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @boms_router.get("/{bid}")
@@ -97,6 +109,52 @@ def delete_bom(
     db.delete(b)
     db.commit()
     return {"ok": True}
+
+
+def _order_rows(db: Session):
+    return [
+        [
+            o.order_number,
+            o.customer_name,
+            o.free_code or "",
+            o.product_description,
+            o.quantity_ordered,
+            serialize_value(o.status),
+            serialize_value(o.created_at),
+            serialize_value(o.updated_at),
+        ]
+        for o in db.query(ProductionOrder).order_by(ProductionOrder.created_at.desc()).all()
+    ]
+
+
+def _instance_rows(db: Session):
+    return [
+        [
+            i.order_id,
+            i.operation_id,
+            i.line_id,
+            i.operator_count,
+            serialize_value(i.status),
+            i.quantity_produced or "",
+            i.lot_code or "",
+            serialize_value(i.started_at),
+            serialize_value(i.ended_at),
+        ]
+        for i in db.query(OperationInstance).order_by(OperationInstance.started_at.desc()).all()
+    ]
+
+
+def _downtime_rows(db: Session):
+    return [
+        [
+            d.id,
+            d.instance_id,
+            d.reason_id,
+            serialize_value(d.started_at),
+            serialize_value(d.ended_at),
+        ]
+        for d in db.query(Downtime).order_by(Downtime.started_at.desc()).all()
+    ]
 
 
 @reports_router.get("/production-orders")
@@ -152,3 +210,56 @@ def report_downtimes(db: Session = Depends(get_db), _: User = Depends(backoffice
         model_to_dict(d, ["id", "instance_id", "reason_id", "started_at", "ended_at"])
         for d in db.query(Downtime).order_by(Downtime.started_at.desc()).all()
     ]
+
+
+@reports_router.get("/export-excel")
+def export_excel(db: Session = Depends(get_db), _: User = Depends(backoffice_or_above)):
+    return xlsx_response(
+        {
+            "ProductionOrders": (
+                [
+                    "Order Number",
+                    "Customer",
+                    "Free Code",
+                    "Description",
+                    "Qty",
+                    "Status",
+                    "Created",
+                    "Updated",
+                ],
+                _order_rows(db),
+            ),
+            "OperationInstances": (
+                [
+                    "Order ID",
+                    "Operation ID",
+                    "Line ID",
+                    "Operators",
+                    "Status",
+                    "Qty",
+                    "Lot",
+                    "Started",
+                    "Ended",
+                ],
+                _instance_rows(db),
+            ),
+            "Downtimes": (
+                ["ID", "Instance ID", "Reason ID", "Started", "Ended"],
+                _downtime_rows(db),
+            ),
+        },
+        filename="localmes_report.xlsx",
+    )
+
+
+@reports_router.get("/export-pdf")
+def export_pdf(db: Session = Depends(get_db), _: User = Depends(backoffice_or_above)):
+    return pdf_table_response(
+        title="LocalMES Production Orders",
+        headers=["Order", "Customer", "Description", "Qty", "Status", "Created"],
+        rows=[
+            [r[0], r[1], r[3], r[4], r[5], r[6]]
+            for r in _order_rows(db)
+        ],
+        filename="localmes_report.pdf",
+    )

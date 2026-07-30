@@ -18,13 +18,16 @@ from routers import (
     customers,
     cycles,
     dashboard,
+    imports,
     master_data,
+    order_events,
     production_orders,
     settings,
     shop_floor,
     users,
     work_orders,
 )
+from routers.settings import start_backup_scheduler
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEV_MODE = os.environ.get("MES_DEV", "1") == "1"
@@ -80,6 +83,8 @@ app.include_router(dashboard.router, prefix=API_PREFIX)
 app.include_router(settings.router, prefix=API_PREFIX)
 app.include_router(boms_reports.boms_router, prefix=API_PREFIX)
 app.include_router(boms_reports.reports_router, prefix=API_PREFIX)
+app.include_router(imports.router, prefix=API_PREFIX)
+app.include_router(order_events.router, prefix=API_PREFIX)
 
 FRONTEND_DIST = os.path.join(BASE_DIR, "..", "frontend", "dist")
 
@@ -105,6 +110,7 @@ if not DEV_MODE and os.path.isdir(FRONTEND_DIST):
 @app.on_event("startup")
 def startup():
     init_db()
+    start_backup_scheduler()
 
 
 @app.get("/health")
