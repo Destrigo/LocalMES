@@ -1,0 +1,37 @@
+{
+  "appName": "LocalMES",
+  "nav": {
+    "dashboard": "Cruscotto",
+    "shopFloor": "Operativo",
+    "customers": "Clienti",
+    "workOrders": "Commesse",
+    "productionOrders": "Ordini di produzione",
+    "products": "Prodotti",
+    "cycles": "Cicli",
+    "lines": "Linee",
+    "settings": "Impostazioni",
+    "signage": "Signage",
+    "logout": "Esci"
+  },
+  "login": {
+    "title": "Accedi",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Entra",
+    "error": "Credenziali non valide"
+  },
+  "common": {
+    "loading": "Caricamento…",
+    "save": "Salva",
+    "create": "Crea",
+    "delete": "Elimina",
+    "refresh": "Aggiorna",
+    "empty": "Nessun dato"
+  },
+  "changePassword": {
+    "title": "Cambio password",
+    "current": "Password attuale",
+    "next": "Nuova password",
+    "submit": "Aggiorna password"
+  }
+}

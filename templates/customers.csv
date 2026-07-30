@@ -1,0 +1,2 @@
+company_name,customer_code,vat_number,email,phone,address,notes,external_id
+Demo Customer,DEMO,IT00000000000,demo@example.com,+390000000,,Demo import,

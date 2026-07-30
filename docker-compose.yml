@@ -1,0 +1,15 @@
+services:
+  localmes:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MES_DEV: "0"
+      MES_SECRET_KEY: ${MES_SECRET_KEY:-change-me-in-compose}
+      MES_DATABASE_PATH: /data/database.db
+      MES_BACKUP_DIR: /data/backups
+    volumes:
+      - localmes-data:/data
+
+volumes:
+  localmes-data:
